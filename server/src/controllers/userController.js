@@ -4,9 +4,11 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
+const User = prisma.user;
+
 async function getUsers(request, response) {
   try {
-    const users = await prisma.user.findMany();
+    const users = await User.findMany();
     response.status(200).json(users);
   } catch (err) {
     response.status(500).json({ err });
@@ -17,7 +19,7 @@ async function loginUser(request, response) {
   const { email, password } = request.body;
   if (!email || !password) return response.status(400).json({ error: 'Missing fields' });
 
-  const foundUser = await prisma.user.findUnique({
+  const foundUser = await User.findUnique({
     where: {
       email,
     },
@@ -45,7 +47,7 @@ async function returnToken(request, response) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const foundUser = await prisma.user.findUnique({
+    const foundUser = await User.findUnique({
       where: {
         id: decoded.id,
       },
@@ -66,7 +68,7 @@ async function createUser(request, response) {
   if (!email || !name || !password)
     return response.status(400).json({ error: 'Missing fields' });
 
-  const foundUser = await prisma.user.findUnique({
+  const foundUser = await User.findUnique({
     where: {
       email,
     },
@@ -76,7 +78,7 @@ async function createUser(request, response) {
 
   try {
     const hash = await bcrypt.hash(password, 10);
-    const newUser = await prisma.user.create({
+    const newUser = await User.create({
       data: {
         email,
         name,
@@ -92,7 +94,7 @@ async function createUser(request, response) {
 async function deleteUser(request, response) {
   const { id } = request.params;
   try {
-    const deletedUser = await prisma.user.delete({
+    const deletedUser = await User.delete({
       where: {
         id,
       },
@@ -106,10 +108,9 @@ async function deleteUser(request, response) {
 async function updateUser(request, response) {
   const { id } = request.params;
   const { email, name, password } = request.body;
-  if (!email || !name || !password)
-    return response.status(400).json({ error: 'Missing fields' });
+  if (!email || !name) return response.status(400).json({ error: 'Missing fields' });
 
-  const foundUser = await prisma.user.findUnique({
+  const foundUser = await User.findUnique({
     where: {
       id,
     },
@@ -117,8 +118,18 @@ async function updateUser(request, response) {
 
   if (!foundUser) return response.status(409).json({ error: 'User doesnt exist' });
 
+  if (password) {
+    const match = await bcrypt.compare(password, foundUser.password);
+    if (!match) {
+      var hash = await bcrypt.hash(password, 10);
+    } else {
+      hash = foundUser.password;
+    }
+  } else {
+    hash = foundUser.password;
+  }
+
   try {
-    const hash = await bcrypt.hash(foundUser.password, 10);
     const updatedUser = await prisma.user.update({
       where: {
         id,
@@ -126,9 +137,10 @@ async function updateUser(request, response) {
       data: {
         email,
         name,
-        hash,
+        password: hash,
       },
     });
+
     response.status(200).send(updatedUser);
   } catch (err) {
     response.status(500).send({ error: err });
