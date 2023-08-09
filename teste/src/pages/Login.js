@@ -1,14 +1,69 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSignIn } from 'react-auth-kit';
 import logo from '../assets/images/CashFlow.png';
-// import { useState } from 'react';
+import { useRef } from 'react';
+import { Toast } from 'primereact/toast';
+
+//theme
+import 'primereact/resources/themes/lara-light-indigo/theme.css';
+//core
+import 'primereact/resources/primereact.min.css';
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const signIn = useSignIn();
+  const toast = useRef(null);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    var email = document.getElementById('email').value;
+    var password = document.getElementById('password').value;
+    if (!email || !password) {
+      toast.current.show({
+        severity: 'error',
+        summary: 'Erro',
+        detail: 'Por favor, preencha todos os campos',
+        life: 8000,
+      });
+    } else {
+      toast.current.clear();
+      const response = await fetch('http://localhost:3001/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+      const data = await response.json();
+      if (data.error) {
+        toast.current.show({
+          severity: 'error',
+          summary: 'Erro',
+          detail: data.message,
+          life: 8000,
+        });
+      } else {
+        toast.current.clear();
+        signIn({
+          token: data.token,
+          expiresIn: 3600,
+          tokenType: 'Bearer',
+          authState: { name: data.name },
+        });
+        navigate('/home');
+      }
+    }
+  };
+
   return (
     <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
+        <Toast ref={toast} />
         <img
           className="mx-auto h-10 w-auto"
           src={logo}
@@ -77,7 +132,7 @@ export default function SignUp() {
             <button
               type="submit"
               className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-              onClick={() => navigate('/login')}
+              onClick={handleLogin}
             >
               Entrar
             </button>

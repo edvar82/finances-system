@@ -1,8 +1,16 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { useIsAuthenticated } from 'react-auth-kit';
 
 import SignUp from './pages/SignUp';
 import Login from './pages/Login';
+import Home from './pages/Home';
+
+const PrivateRoute = ({ Component }) => {
+  const isAuthenticated = useIsAuthenticated();
+  const auth = isAuthenticated();
+  return auth ? <Component /> : <Navigate to="/login" />;
+};
 
 export default function Rotas() {
   return (
@@ -16,14 +24,10 @@ export default function Rotas() {
           path="/login"
           element={<Login />}
         ></Route>
-        {/* <Route
-            path="/home"
-            element={
-              <RequireAuth loginPath="/login">
-                <Home />
-              </RequireAuth>
-            }
-          ></Route> */}
+        <Route
+          path="/home"
+          element={<PrivateRoute Component={Home} />}
+        ></Route>
       </Routes>
     </Router>
   );

@@ -2,13 +2,94 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/images/CashFlow.png';
-// import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { Toast } from 'primereact/toast';
+
+//theme
+import 'primereact/resources/themes/lara-light-indigo/theme.css';
+//core
+import 'primereact/resources/primereact.min.css';
 
 export default function SignUp() {
+  const toast = useRef(null);
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  // eslint-disable-next-line
+  const [emailError, setEmailError] = useState('');
+
+  const handleEmailChange = (event) => {
+    setEmail(event.target.value);
+  };
+
+  const validateEmail = () => {
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+    if (!emailRegex.test(email)) {
+      setEmailError('Por favor, insira um e-mail válido');
+      toast.current.show({
+        severity: 'error',
+        summary: 'Erro',
+        detail: 'Por favor, insira um e-mail válido',
+        life: 8000,
+      });
+    } else {
+      toast.current.clear();
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    var email = document.getElementById('email').value;
+    var nome = document.getElementById('nome').value;
+    var password = document.getElementById('password').value;
+    var confirmpassword = document.getElementById('confirmpassword').value;
+    if (!email || !nome || !password || !confirmpassword) {
+      toast.current.show({
+        severity: 'error',
+        summary: 'Erro',
+        detail: 'Por favor, preencha todos os campos',
+        life: 8000,
+      });
+    } else {
+      toast.current.clear();
+      if (password !== confirmpassword) {
+        toast.current.show({
+          severity: 'error',
+          summary: 'Erro',
+          detail: 'As senhas não coincidem',
+          life: 8000,
+        });
+      } else {
+        toast.current.clear();
+        const response = await fetch('http://localhost:3001/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            name: nome,
+            password,
+          }),
+        });
+        const data = await response.json();
+        if (data.error) {
+          toast.current.show({
+            severity: 'error',
+            summary: 'Erro',
+            detail: data.error,
+            life: 8000,
+          });
+        } else {
+          navigate('/login');
+        }
+      }
+    }
+  };
+
   return (
     <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
+        <Toast ref={toast} />
         <img
           className="mx-auto h-8 w-auto"
           src={logo}
@@ -34,6 +115,9 @@ export default function SignUp() {
                 name="email"
                 type="email"
                 autoComplete="email"
+                value={email}
+                onChange={handleEmailChange}
+                onBlur={validateEmail}
                 required
                 className="block w-full rounded-md border-0 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
               />
@@ -101,7 +185,7 @@ export default function SignUp() {
             <button
               type="submit"
               className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-              onClick={() => navigate('/login')}
+              onClick={handleRegister}
             >
               Registrar
             </button>
